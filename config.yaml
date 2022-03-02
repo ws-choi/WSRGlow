@@ -14,7 +14,7 @@ binarization_args:
   with_txt: true
   with_wav: true
 #binarizer_cls: data_gen.tts.base_binarizer.BaseBinarizer
-#binary_data_dir: data/binary/vctk_wav
+binary_data_dir: data/binary/vctk_wav
 check_val_every_n_epoch: 10
 clip_grad_norm: 1
 debug: false
@@ -199,4 +199,4 @@ weight_decay: 0
 win_length: null
 win_size: 1024
 window: hann
-#work_dir: checkpoints/glowmultin
+work_dir: checkpoints/wsrglow
