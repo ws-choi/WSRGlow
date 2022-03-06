@@ -32,3 +32,5 @@ pudb            # debugger
 
 webrtcvad
 scikit-image
+pandas
+pyloudnorm
