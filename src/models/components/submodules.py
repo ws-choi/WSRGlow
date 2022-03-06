@@ -45,7 +45,6 @@ class MuLawEmbedding(torch.nn.Module):
         # [0, 256)
         assert torch.min(index).item() >= 0 and torch.max(
             index).item() < embed_num
-        index = index.cuda()
         return self.embed(index)
 
 
@@ -63,7 +62,6 @@ class AngleEmbedding(torch.nn.Module):
                 index + (index >= embed_num) * (embed_num - 1)
         assert torch.min(index).item() >= 0 and torch.max(
             index).item() < embed_num
-        index = index.cuda()
         return self.embed(index)
 
 
