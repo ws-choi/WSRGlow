@@ -1,0 +1,27 @@
+_target_: src.datamodules.components.sr_bianarizer.DapsSRBinarizer
+
+data_dir: ${oc.env:VCTK_ROOT}
+binary_data_dir: ${oc.env:BINARY_ROOT}
+binarization_args:
+  resampled_rate: 24000
+  shuffle: false
+  with_align: false
+  with_f0: true
+  with_f0cwt: true
+  with_resample: true
+  with_spk_embed: false
+  with_txt: true
+  with_wav: true
+
+wav2spec_args:
+  fft_size: 1024
+  hop_size: 256
+  win_size: 1024
+  audio_num_mel_bins: 80
+  fmin: 80
+  fmax: 7600
+  audio_sample_rate: 48000
+  loud_norm: False
+  min_level_db: -100
+
+test_num: 100

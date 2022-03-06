@@ -1,0 +1,24 @@
+_target_: src.models.task.Task4
+
+optim_config:
+  lr: 1e-4
+  weight_decay: 0.0
+
+net:
+  _target_: src.models.components.waveglow.WaveGlowMelHF
+  embed_num: 256
+  mu: 256
+  n_early_every: 4
+  n_early_size: 2
+  n_flows: 12
+  n_group: 8
+  embed_dim: 400
+  WN_config:
+    kernel_size: 3
+    n_channels: 256
+    n_layers: 8
+
+criterion:
+  _target_: src.models.components.loss.WaveGlowLoss
+  sigma: 0.1
+

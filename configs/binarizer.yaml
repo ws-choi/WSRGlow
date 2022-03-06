@@ -1,0 +1,6 @@
+# @package _global_
+
+# specify here default evaluation configuration
+defaults:
+  - _self_
+  - binarizer: default_24k
