@@ -10,7 +10,7 @@ max_frames: 1550
 max_samples: 12800
 n_fft: 32
 audio_sample_rate: 48000
-resampled_rate: 12000
+resampled_rate: 24000
 
 test_spkers:
   - "p360"
