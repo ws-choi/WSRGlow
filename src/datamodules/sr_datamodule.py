@@ -58,6 +58,7 @@ class SRDataModule(LightningDataModule):
         if not os.path.exists(target_dir):
             self.binarizer.process()
 
+    def setup(self, stage: Optional[str] = None):
         self.data_train = SRDataset(shuffle=True,
                                     sort_by_len=self.sort_by_len,
                                     max_frames=self.max_frames,
@@ -67,9 +68,6 @@ class SRDataModule(LightningDataModule):
                                     n_fft=self.n_fft,
                                     audio_sample_rate=self.audio_sample_rate,
                                     resampled_rate=self.resampled_rate)
-
-    def setup(self, stage: Optional[str] = None):
-        pass
 
     def train_dataloader(self):
         return DataLoader(

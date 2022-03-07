@@ -1,0 +1,17 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /datamodule: super_resolution.yaml
+  - override /model: waveglow.yaml
+  - override /callbacks: train_only.yaml
+  - override /logger: wandb # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
+  - override /trainer: ddp.yaml
+  - override /log_dir: default.yaml
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+trainer:
+  max_epochs: 400

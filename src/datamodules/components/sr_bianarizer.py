@@ -81,7 +81,7 @@ class DapsSRBinarizer:
         self.wav2spec_args = wav2spec_args
         self.test_num = test_num
 
-        self.wavfns = sorted(glob.glob(f'{self.data_dir}/wav48/*/*.wav'))
+        self.wavfns = sorted(glob.glob(f'{self.data_dir}/wav48/*/*.flac'))
         self.item2wavfn = {}
         for id, wavfn in enumerate(self.wavfns):
             self.item2wavfn[id] = wavfn
@@ -190,7 +190,7 @@ class VFSRBinarizer:
 
         spkers_train = set(os.listdir(f'{self.data_dir}/wav48')) - set(test_spkers)
         for spker in sorted(spkers_train):
-            self.wavfns += sorted(glob.glob(f'{self.data_dir}/wav48/{spker}/*.wav'))
+            self.wavfns += sorted(glob.glob(f'{self.data_dir}/wav48/{spker}/*.flac'))
 
         self.item2wavfn = {id:wavfn for id, wavfn in enumerate(self.wavfns)}
         self.item_names = list(range(len(self.wavfns)))
