@@ -13,7 +13,7 @@ def Embedding(num_embeddings, embedding_dim, padding_idx=None):
     return m
 
 
-#@torch.jit.script
+#@torch.jit.script #TODO
 def fused_add_tanh_sigmoid_multiply(input_a, input_b, n_channels):
     n_channels_int = n_channels[0]
     in_act = input_a + input_b

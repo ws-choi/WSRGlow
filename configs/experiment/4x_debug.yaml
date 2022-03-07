@@ -1,0 +1,21 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /datamodule: super_resolution.yaml
+  - override /model: waveglow.yaml
+  - override /callbacks: none
+  - override /logger: none # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
+  - override /logger: null
+  - override /trainer: default.yaml
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+resampled_rate: 12000
+
+trainer:
+  max_epochs: 400
+datamodule:
+  batch_size: 2
