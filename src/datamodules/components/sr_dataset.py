@@ -141,7 +141,97 @@ class SRDataset(BaseDataset):
                 lr_max_samples = int(self.resample_ratio * batch_max_samples)
                 lr_start_step = np.random.randint(0, len(lr) - lr_max_samples + 1)
                 # print(hr.shape)
-                hr_ = hr[int(lr_start_step / self.resample_ratio): int((lr_start_step + lr_max_samples) / self.resample_ratio)]
+                hr_ = hr[int(lr_start_step / self.resample_ratio): int(
+                    (lr_start_step + lr_max_samples) / self.resample_ratio)]
+                lr_ = lr[lr_start_step: lr_start_step + lr_max_samples]
+                Dlow = librosa.stft(lr_, n_fft=n_fft // 2)
+                lr_mag = np.abs(Dlow)
+                lr_pha = np.angle(Dlow)
+                D = librosa.stft(hr_, n_fft=n_fft)
+                hr_mag = np.abs(D)
+                hr_pha = np.angle(D)
+            else:
+                print(f'Removed short sample from batch (length={len(hr)}).')
+                continue
+            hr_batch += [torch.FloatTensor(hr_)]
+            lr_batch += [torch.FloatTensor(lr_)]
+            lr_mag_batch += [torch.FloatTensor(lr_mag).t()]
+            lr_pha_batch += [torch.FloatTensor(lr_pha).t()]
+            hr_mag_batch += [torch.FloatTensor(hr_mag).t()]
+            hr_pha_batch += [torch.FloatTensor(hr_pha).t()]
+
+        hr_batch = utils.collate_1d(hr_batch, 0)
+        lr_batch = utils.collate_1d(lr_batch, 0)
+        lr_mag_batch = utils.collate_2d(lr_mag_batch, 0).permute(0, 2, 1)
+        lr_pha_batch = utils.collate_2d(lr_pha_batch, 0).permute(0, 2, 1)
+        hr_mag_batch = utils.collate_2d(hr_mag_batch, 0).permute(0, 2, 1)
+        hr_pha_batch = utils.collate_2d(hr_pha_batch, 0).permute(0, 2, 1)
+
+        return {
+            'wavs': hr_batch,
+            'nsamples': len(samples),
+            'resampled_wavs': lr_batch,
+            'item_name': item_name,
+            'lr_mags': lr_mag_batch,
+            'lr_phas': lr_pha_batch,
+            'hr_mags': hr_mag_batch,
+            'hr_phas': hr_pha_batch
+        }
+
+
+class SRDataset_2PR(SRDataset):
+    def __init__(self, shuffle, audio_sample_rate, resampled_rate, target_rate,
+                 sort_by_len, max_frames, prefix, binary_data_dir,
+                 max_samples, n_fft):
+
+        super().__init__(shuffle, audio_sample_rate, resampled_rate, sort_by_len, max_frames, prefix, binary_data_dir,
+                         max_samples, n_fft)
+        self.target_rate = target_rate
+        self.sizes = np.load(f'{self.data_dir}/{target_rate}_to_{resampled_rate}/{self.prefix}_lengths.npy')
+
+    def _get_item(self, index):
+        if hasattr(self, 'avail_idxs') and self.avail_idxs is not None:
+            index = self.avail_idxs[index]
+        if self.indexed_ds is None:
+            self.indexed_ds = IndexedDataset(f'{self.data_dir}/{self.target_rate}_to_{self.resampled_rate}/{self.prefix}')
+        return self.indexed_ds[index]
+
+    def __getitem__(self, index):
+        item = self._get_item(index)
+
+        sample = {
+            'id': index,
+            'item_name': item['item_name'],
+            'wav': item['wav'],
+            'lr_wav': item['resampled_wav']
+        }
+
+        return sample
+
+    def collater(self, samples):
+        if len(samples) == 0:
+            return {}
+
+        id = []
+        item_name = []
+        hr_batch = []
+        lr_batch = []
+        lr_mag_batch = []
+        lr_pha_batch = []
+        hr_mag_batch = []
+        hr_pha_batch = []
+        n_fft = self.n_fft
+        for (idx, s) in enumerate(samples):
+            id.append(s['id'])
+            item_name.append(s['item_name'])
+            hr, lr = s['wav'], s['lr_wav']
+            if len(hr) > self.batch_max_samples:
+                batch_max_samples = len(hr) if self.is_infer else self.batch_max_samples
+                lr_max_samples = int(self.resample_ratio * batch_max_samples)
+                lr_start_step = np.random.randint(0, len(lr) - lr_max_samples + 1)
+                # print(hr.shape)
+                hr_ = hr[int(lr_start_step / self.resample_ratio): int(
+                    (lr_start_step + lr_max_samples) / self.resample_ratio)]
                 lr_ = lr[lr_start_step: lr_start_step + lr_max_samples]
                 Dlow = librosa.stft(lr_, n_fft=n_fft // 2)
                 lr_mag = np.abs(Dlow)

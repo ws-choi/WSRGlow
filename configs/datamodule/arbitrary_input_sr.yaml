@@ -1,0 +1,54 @@
+_target_: src.datamodules.sr_datamodule.SRDataModule_2PR
+
+data_dir: ${data_dir}
+batch_size: 12
+num_workers: 0
+pin_memory: False
+
+sort_by_len: True
+max_frames: 1550
+max_samples: 12800
+n_fft: 32
+audio_sample_rate: 48000
+resampled_rate: 24000
+target_rate: null
+# resampling: audio_sample_rate => target_rate => resampled_rate
+
+test_spkers:
+  - "p360"
+  - "p361"
+  - "p362"
+  - "p363"
+  - "p364"
+  - "p374"
+  - "p376"
+  - "s5"
+
+binarizer:
+  _target_: src.datamodules.components.sr_bianarizer.VFSRBinarizer_2PR
+  data_dir: ${vctk_data_dir}
+  format: flac
+  binary_data_dir: ${oc.env:BINARY_ROOT}
+  binarization_args:
+    resampled_rate: ${datamodule.resampled_rate}
+    target_rate: ${datamodule.target_rate}
+    shuffle: false
+    with_align: false
+    with_f0: true
+    with_f0cwt: true
+    with_resample: true
+    with_spk_embed: false
+    with_txt: true
+    with_wav: true
+
+  wav2spec_args:
+    fft_size: 1024
+    hop_size: 256
+    win_size: 1024
+    audio_num_mel_bins: 80
+    fmin: 80
+    fmax: 7600
+    audio_sample_rate: ${datamodule.audio_sample_rate}
+    loud_norm: False
+    min_level_db: -100
+  test_spkers: ${datamodule.test_spkers}

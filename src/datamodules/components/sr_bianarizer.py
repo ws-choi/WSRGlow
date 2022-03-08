@@ -72,114 +72,114 @@ class IndexedDatasetBuilder:
         np.save(open(f"{self.path}.idx", 'wb'), {'offsets': self.byte_offsets})
 
 
-class DapsSRBinarizer:
-    def __init__(self, data_dir, binary_data_dir, binarization_args, wav2spec_args, test_num):
-
-        self.data_dir = data_dir
-        self.binary_data_dir = binary_data_dir
-        self.binarization_args = binarization_args
-        self.wav2spec_args = wav2spec_args
-        self.test_num = test_num
-
-        self.wavfns = sorted(glob.glob(f'{self.data_dir}/wav48/*/*.flac'))
-        self.item2wavfn = {}
-        for id, wavfn in enumerate(self.wavfns):
-            self.item2wavfn[id] = wavfn
-        self.item_names = list(range(len(self.wavfns)))
-        if self.binarization_args['shuffle']:
-            random.seed(1234)
-            random.shuffle(self.item_names)
-
-    @property
-    def train_item_names(self):
-        return self.item_names[self.test_num:]
-
-    @property
-    def valid_item_names(self):
-        return self.item_names[:self.test_num]
-
-    @property
-    def test_item_names(self):
-        return self.valid_item_names #TODO: val=test
-
-    def get_wav_fns(self, prefix):
-        if prefix == 'valid':
-            item_names = self.valid_item_names
-        elif prefix == 'test':
-            item_names = self.test_item_names
-        else:
-            item_names = self.train_item_names
-
-        for item_name in item_names:
-            wav_fn = self.item2wavfn[item_name]
-            yield item_name, wav_fn
-
-    def process(self):
-        os.makedirs(self.binary_data_dir, exist_ok=True)
-        target_sr = self.binarization_args['resampled_rate']
-        target_dir = f'{self.binary_data_dir}/{str(target_sr)}'
-        os.makedirs(target_dir, exist_ok=True)
-
-        self.process_data(target_dir, 'valid')
-        self.process_data(target_dir, 'test')
-        self.process_data(target_dir, 'train')
-
-    def process_data(self, target_dir, prefix):
-        builder = IndexedDatasetBuilder(f'{target_dir}/{prefix}')
-        lengths = []
-        f0s = []
-        total_sec = 0
-
-        meta_data = list(self.get_wav_fns(prefix))
-        args = [
-            list(m) + [self.binarization_args, self.wav2spec_args] for m in meta_data
-        ]
-        num_workers = int(os.getenv('N_PROC', os.cpu_count() // 3))
-        for f_id, (_, item) in enumerate(
-                zip(tqdm(meta_data), chunked_multiprocess_run(self.process_item, args, num_workers=num_workers))
-        ):
-            if item is None:
-                continue
-            if not self.binarization_args['with_wav'] and 'wav' in item:
-                del item['wav']
-            if not self.binarization_args['with_resample'] and 'resampled_wav' in item:
-                del item['resampled_wav']
-
-            builder.add_item(item)
-            lengths.append(item['len'])
-            total_sec += item['sec']
-            if item.get('f0') is not None:
-                f0s.append(item['f0'])
-        builder.finalize()
-        np.save(f'{target_dir}/{prefix}_lengths.npy', lengths)
-        if len(f0s) > 0:
-            f0s = np.concatenate(f0s, 0)
-            f0s = f0s[f0s != 0]
-            np.save(f'{target_dir}/{prefix}_f0s_mean_std.npy', [np.mean(f0s).item(), np.std(f0s).item()])
-        print(f'| {prefix} total duration: {total_sec: .3f}s')
-
-    @classmethod
-    def process_item(cls, item_name, wav_fn, binarization_args, wav2spec_args):
-        wav, mel = dataset_utils.wav2spec(wav_fn, wav2spec_args)
-
-        res = {
-            'item_name': item_name,
-            'wav': wav,
-            'sec': len(wav) / wav2spec_args['audio_sample_rate'], #TODO check sr
-            'len': mel.shape[0],
-            'wav_fn': wav_fn,
-        }
-
-        if binarization_args['with_resample']:
-            sr = wav2spec_args['audio_sample_rate']
-            sr_hat = binarization_args['resampled_rate']
-            res['resampled_wav'] = librosa.resample(wav, sr, sr_hat)
-
-        return res
+# class DapsSRBinarizer:
+#     def __init__(self, data_dir, binary_data_dir, binarization_args, wav2spec_args, test_num):
+#
+#         self.data_dir = data_dir
+#         self.binary_data_dir = binary_data_dir
+#         self.binarization_args = binarization_args
+#         self.wav2spec_args = wav2spec_args
+#         self.test_num = test_num
+#
+#         self.wavfns = sorted(glob.glob(f'{self.data_dir}/wav48/*/*.flac'))
+#         self.item2wavfn = {}
+#         for id, wavfn in enumerate(self.wavfns):
+#             self.item2wavfn[id] = wavfn
+#         self.item_names = list(range(len(self.wavfns)))
+#         if self.binarization_args['shuffle']:
+#             random.seed(1234)
+#             random.shuffle(self.item_names)
+#
+#     @property
+#     def train_item_names(self):
+#         return self.item_names[self.test_num:]
+#
+#     @property
+#     def valid_item_names(self):
+#         return self.item_names[:self.test_num]
+#
+#     @property
+#     def test_item_names(self):
+#         return self.valid_item_names #TODO: val=test
+#
+#     def get_wav_fns(self, prefix):
+#         if prefix == 'valid':
+#             item_names = self.valid_item_names
+#         elif prefix == 'test':
+#             item_names = self.test_item_names
+#         else:
+#             item_names = self.train_item_names
+#
+#         for item_name in item_names:
+#             wav_fn = self.item2wavfn[item_name]
+#             yield item_name, wav_fn
+#
+#     def process(self):
+#         os.makedirs(self.binary_data_dir, exist_ok=True)
+#         target_sr = self.binarization_args['resampled_rate']
+#         target_dir = f'{self.binary_data_dir}/{str(target_sr)}'
+#         os.makedirs(target_dir, exist_ok=True)
+#
+#         self.process_data(target_dir, 'valid')
+#         self.process_data(target_dir, 'test')
+#         self.process_data(target_dir, 'train')
+#
+#     def process_data(self, target_dir, prefix):
+#         builder = IndexedDatasetBuilder(f'{target_dir}/{prefix}')
+#         lengths = []
+#         f0s = []
+#         total_sec = 0
+#
+#         meta_data = list(self.get_wav_fns(prefix))
+#         args = [
+#             list(m) + [self.binarization_args, self.wav2spec_args] for m in meta_data
+#         ]
+#         num_workers = int(os.getenv('N_PROC', os.cpu_count() // 3))
+#         for f_id, (_, item) in enumerate(
+#                 zip(tqdm(meta_data), chunked_multiprocess_run(self.process_item, args, num_workers=num_workers))
+#         ):
+#             if item is None:
+#                 continue
+#             if not self.binarization_args['with_wav'] and 'wav' in item:
+#                 del item['wav']
+#             if not self.binarization_args['with_resample'] and 'resampled_wav' in item:
+#                 del item['resampled_wav']
+#
+#             builder.add_item(item)
+#             lengths.append(item['len'])
+#             total_sec += item['sec']
+#             if item.get('f0') is not None:
+#                 f0s.append(item['f0'])
+#         builder.finalize()
+#         np.save(f'{target_dir}/{prefix}_lengths.npy', lengths)
+#         if len(f0s) > 0:
+#             f0s = np.concatenate(f0s, 0)
+#             f0s = f0s[f0s != 0]
+#             np.save(f'{target_dir}/{prefix}_f0s_mean_std.npy', [np.mean(f0s).item(), np.std(f0s).item()])
+#         print(f'| {prefix} total duration: {total_sec: .3f}s')
+#
+#     @classmethod
+#     def process_item(cls, item_name, wav_fn, binarization_args, wav2spec_args):
+#         wav, mel = dataset_utils.wav2spec(wav_fn, wav2spec_args)
+#
+#         res = {
+#             'item_name': item_name,
+#             'wav': wav,
+#             'sec': len(wav) / wav2spec_args['audio_sample_rate'], #TODO check sr
+#             'len': mel.shape[0],
+#             'wav_fn': wav_fn,
+#         }
+#
+#         if binarization_args['with_resample']:
+#             sr = wav2spec_args['audio_sample_rate']
+#             sr_hat = binarization_args['resampled_rate']
+#             res['resampled_wav'] = librosa.resample(wav, sr, sr_hat)
+#
+#         return res
 
 
 class VFSRBinarizer:
-    def __init__(self, data_dir, binary_data_dir, binarization_args, wav2spec_args, test_spkers):
+    def __init__(self, data_dir, binary_data_dir, binarization_args, wav2spec_args, test_spkers, format='flac'):
 
         self.data_dir = data_dir
         self.binary_data_dir = binary_data_dir
@@ -190,7 +190,7 @@ class VFSRBinarizer:
 
         spkers_train = set(os.listdir(f'{self.data_dir}/wav48')) - set(test_spkers)
         for spker in sorted(spkers_train):
-            self.wavfns += sorted(glob.glob(f'{self.data_dir}/wav48/{spker}/*.flac'))
+            self.wavfns += sorted(glob.glob(f'{self.data_dir}/wav48/{spker}/*.{format}'))
 
         self.item2wavfn = {id:wavfn for id, wavfn in enumerate(self.wavfns)}
         self.item_names = list(range(len(self.wavfns)))
@@ -241,7 +241,7 @@ class VFSRBinarizer:
         ]
         num_workers = int(os.getenv('N_PROC', os.cpu_count() // 3))
         for f_id, (_, item) in enumerate(
-                zip(tqdm(meta_data), chunked_multiprocess_run(self.process_item, args, num_workers=num_workers))
+                zip(tqdm(meta_data), chunked_multiprocess_run(VFSRBinarizer_2PR.process_item, args, num_workers=num_workers))
         ):
             if item is None:
                 continue
@@ -278,5 +278,41 @@ class VFSRBinarizer:
             sr = wav2spec_args['audio_sample_rate']
             sr_hat = binarization_args['resampled_rate']
             res['resampled_wav'] = librosa.resample(wav, sr, sr_hat)
+
+        return res
+
+
+class VFSRBinarizer_2PR(VFSRBinarizer):
+    def __init__(self, data_dir, binary_data_dir, binarization_args, wav2spec_args, test_spkers, format):
+        super().__init__(data_dir, binary_data_dir, binarization_args, wav2spec_args, test_spkers, format)
+
+    def process(self):
+        os.makedirs(self.binary_data_dir, exist_ok=True)
+        target_rate = self.binarization_args['target_rate']
+        resampled_rate = self.binarization_args['resampled_rate']
+        target_dir = f'{self.binary_data_dir}/{target_rate}_to_{resampled_rate}'
+        os.makedirs(target_dir, exist_ok=True)
+
+        # self.process_data(target_dir, 'valid')
+        # self.process_data(target_dir, 'test')
+        self.process_data(target_dir, 'train')
+
+    @classmethod
+    def process_item(cls, item_name, wav_fn, binarization_args, wav2spec_args):
+        wav, mel = dataset_utils.wav2spec(wav_fn, wav2spec_args)
+        res = {
+            'item_name': item_name,
+            'wav': wav,
+            'sec': len(wav) / wav2spec_args['audio_sample_rate'], #TODO check sr
+            'len': mel.shape[0],
+            'wav_fn': wav_fn,
+        }
+
+        if binarization_args['with_resample']:
+            sr = wav2spec_args['audio_sample_rate']
+            target_sr_hat = binarization_args['target_rate']
+            real_target = librosa.resample(wav, sr, target_sr_hat)
+            sr_hat = binarization_args['resampled_rate']
+            res['resampled_wav'] = librosa.resample(real_target, target_sr_hat, sr_hat)
 
         return res
