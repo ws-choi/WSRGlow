@@ -95,7 +95,8 @@ class SRDataset(BaseDataset):
         self.is_infer = prefix == 'test'
         self.batch_max_samples = 0 if self.is_infer else max_samples
         self.resampled_rate = resampled_rate
-        self.sizes = np.load(f'{self.data_dir}/{resampled_rate}/{self.prefix}_lengths.npy')
+        if not isinstance(self, SRDataset_2PR):
+            self.sizes = np.load(f'{self.data_dir}/{resampled_rate}/{self.prefix}_lengths.npy')
         self.indexed_ds = None
         self.n_fft = n_fft
         self.resample_ratio = float(resampled_rate) / audio_sample_rate
