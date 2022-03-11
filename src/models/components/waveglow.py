@@ -51,7 +51,6 @@ class WaveGlowMelHF(torch.nn.Module):
         lr = lr
 
         n_group = self.n_group
-
         Ds = [librosa.stft(x, n_fft=n_group * 2, hop_length=n_group) for x in lr.cpu().numpy()]
         spect = torch.tensor([np.abs(d) for d in Ds], dtype=lr.dtype, device=lr.device)  # (B, n_group + 1, T / 2 / n_group)
         phase = torch.tensor([np.angle(d) for d in Ds], dtype=lr.dtype, device=lr.device)  # (B, n_group + 1, T / 2 / n_group)
@@ -126,8 +125,10 @@ class WaveGlowMelHF(torch.nn.Module):
     def infer(self, lr, sigma=1.0):
         n_group = self.n_group
         Ds = [librosa.stft(x, n_fft=n_group * 2, hop_length=n_group) for x in lr.cpu().numpy()]
-        spect = torch.Tensor([np.abs(d) for d in Ds])  # (B, n_group + 1, T / 2 / n_group)
-        phase = torch.Tensor([np.angle(d) for d in Ds])  # (B, n_group + 1, T / 2 / n_group)
+        spect = torch.tensor([np.abs(d) for d in Ds], dtype=lr.dtype,
+                             device=lr.device)  # (B, n_group + 1, T / 2 / n_group)
+        phase = torch.tensor([np.angle(d) for d in Ds], dtype=lr.dtype,
+                             device=lr.device)  # (B, n_group + 1, T / 2 / n_group)
         phaseemb = self.phase_embedding(phase.permute(0, 2, 1))  # (B, n_group + 1, T / 2 / n_group, H)
         phaseemb = phaseemb.reshape(phaseemb.shape[0], phaseemb.shape[1], -1).permute(0, 2, 1)
         lr = self.muembed(lr).permute(0, 2, 1)  # (B, H, T / 2)
@@ -140,14 +141,9 @@ class WaveGlowMelHF(torch.nn.Module):
         phaseemb = phaseemb[:, :, :min_dim2]
         lr = torch.cat((lr, spect, phaseemb), dim=1)
 
-        if lr.type() == 'torch.cuda.HalfTensor':
-            audio = torch.cuda.HalfTensor(lr.size(0),
-                                          self.n_remaining_channels,
-                                          lr.size(2)).normal_()
-        else:
-            audio = torch.cuda.FloatTensor(lr.size(0),
-                                           self.n_remaining_channels,
-                                           lr.size(2)).normal_()
+        audio = torch.randn(lr.size(0), self.n_remaining_channels, lr.size(2),
+                            dtype=lr.dtype,
+                            device=lr.device)
 
         # print(f'sigma = {sigma}')
         # print(f'audio.shape = {audio.shape}', flush=True)
@@ -168,10 +164,9 @@ class WaveGlowMelHF(torch.nn.Module):
             audio = self.convinv[k](audio, reverse=True)
 
             if k % self.n_early_every == 0 and k > 0:
-                if lr.type() == 'torch.cuda.HalfTensor':
-                    z = torch.cuda.HalfTensor(lr.size(0), self.n_early_size, lr.size(2)).normal_()
-                else:
-                    z = torch.cuda.FloatTensor(lr.size(0), self.n_early_size, lr.size(2)).normal_()
+                z = torch.randn(lr.size(0), self.n_early_size, lr.size(2),
+                                dtype=lr.dtype,
+                                device=lr.device)
                 audio = torch.cat((sigma * z, audio), 1)
 
         audio = audio.permute(0, 2, 1).contiguous().view(audio.size(0), -1)

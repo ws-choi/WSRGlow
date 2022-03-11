@@ -1,5 +1,7 @@
 import pytorch_lightning as pl
 import torch
+import librosa
+import numpy as np
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from torch.optim import Adam
 
@@ -30,3 +32,6 @@ class Task4(pl.LightningModule):
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
+
+    def infer(self, lr, sigma=1.0):
+        return self.net.infer(lr, sigma)
