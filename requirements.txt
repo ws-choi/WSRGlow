@@ -34,3 +34,4 @@ webrtcvad
 scikit-image
 pandas
 pyloudnorm
+wandb
