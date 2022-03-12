@@ -16,7 +16,8 @@ defaults:
 target_rate: null
 
 trainer:
-  max_epochs: 400
+  max_epochs: 60
+  max_steps: 100000
 datamodule:
   target_rate: ${target_rate}
 logger:
