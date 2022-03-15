@@ -20,5 +20,5 @@ net:
 
 criterion:
   _target_: src.models.components.loss.WaveGlowLoss
-  sigma: 0.1
+  sigma: 1.0
 
